@@ -6,7 +6,7 @@ set ApplicationSrcMainFile=..\spanish.cpp
 set DisableOptimization=-Od
 set GenerateDebugInfo=-Z7
 
-set IncludeDirectories=/I..\platform /I..\win32 /I..\externals /I..\containers
+set IncludeDirectories=/I..\jwin
 
 set OutputFiles=/Fm%OutputFileName%.map /Fe%OutputFileName%.exe /Fo%OutputFileName%.obj
 set LinkFlags=-incremental:no -opt:ref user32.lib gdi32.lib winmm.lib 
@@ -18,15 +18,15 @@ REM "USER_APPLICATION_TMP.dll"
 
 IF NOT EXIST build mkdir build
 pushd build
-..\ctime\ctime -begin jwin_main.ctm
+..\jwin\ctime\ctime -begin jwin_main.ctm
 del *.pdb > NUL 2> NUL
 REM echo create lock file
 echo WAITING FOR PDB > lock.tmp
 cl %CommonCompilerFlags% -DTRANSLATION_UNIT_INDEX=0 %ApplicationSrcMainFile%  -Fm%OutputFileName%.map -MTd -LD /link -incremental:no -opt:ref  %CommonLinkerFlags% -PDB:%OutputFileName%_%random%.pdb -EXPORT:ApplicationUpdateAndRender
 set LastError=%ERRORLEVEL%
 del lock.tmp
-cl %CommonCompilerFlags% -DTRANSLATION_UNIT_INDEX=1  ..\win32\win32_main.cpp -Fmwin32_main.map /link %CommonLinkerFlags%
+cl %CommonCompilerFlags% -DTRANSLATION_UNIT_INDEX=1  ..\jwin\win32\win32_main.cpp -Fmwin32_main.map /link %CommonLinkerFlags%
 
-..\ctime\ctime -end jwin_main.ctm %LastError%
+..\jwin\ctime\ctime -end jwin_main.ctm %LastError%
 popd
 

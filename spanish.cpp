@@ -1,8 +1,8 @@
 #include "spanish.h"
 
-#include "jwin_platform_memory.cpp"
-#include "jwin_platform_input.h"
-#include "jfont.cpp"
+#include "platform/jwin_platform_memory.cpp"
+#include "platform/jwin_platform_input.h"
+#include "platform/jfont.cpp"
 #include "text_input.cpp"
 
 inline s32 

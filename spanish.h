@@ -1,6 +1,6 @@
 #pragma once
-#include "jwin_platform.h"
-#include "jfont.h"
+#include "platform/jwin_platform.h"
+#include "platform/jfont.h"
 #include "text_input.h"
 
 struct application_state

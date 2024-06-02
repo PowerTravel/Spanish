@@ -1,6 +1,6 @@
 #pragma once
-#include "jwin_types.h"
-#include "jwin_string.h"
+#include "platform/jwin_types.h"
+#include "platform/jwin_string.h"
 
 
 enum LanguageType

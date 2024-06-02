@@ -1,6 +1,6 @@
-#include "jwin_platform_input.h"
-#include "jwin_string.h"
-#include "utf8.h"
+#include "platform/jwin_platform_input.h"
+#include "platform/jwin_string.h"
+#include "platform/utf8.h"
 
 void LanguageToUtf8String(u32 Language, utf8_byte* Output)
 {
