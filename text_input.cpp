@@ -468,12 +468,7 @@ u32 ConvertToUnicodeAccented(utf8_byte *utf8Input, u32* unicodeOutput)
   return j;
 }
 
-u32 ConvertToUnicode(utf8_byte *utf8Input, u32* unicodeOutput, u32 Language)
+u32 ConvertToUnicode(utf8_byte *utf8Input, u32* unicodeOutput)
 {
-  switch(Language)
-  {
-    case SPANISH: {return ConvertToUnicodeAccented(utf8Input, unicodeOutput); } break;
-    case SWEDISH: {return ConvertToUnicodeAccented(utf8Input, unicodeOutput); } break;
-    default: {return ConvertToUnicodeEnglish(utf8Input, unicodeOutput); } break;
-  }
+  return ConvertToUnicodeAccented(utf8Input, unicodeOutput);
 }

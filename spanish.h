@@ -8,7 +8,9 @@ struct application_state
   b32 Initialized;
 
   jfont::sdf_font Font;
-  s32 Language;
+  s32 QuestionLanguage;
+  s32 AnswerLanguage;
+
   utf8_string_buffer InputBuffer;
 
   r32 TextPixelSize;

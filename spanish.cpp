@@ -71,8 +71,7 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
 {
   GlobalState = JwinBeginFrameMemory(application_state);
 
-  u32 StartChar = 0x20;
-  u32 EndChar = 0x100;
+  u32 CharCount = 0x100;
   int Padding = 3;
   char FontPath[] = "C:\\Windows\\Fonts\\consola.ttf";
 
@@ -84,12 +83,12 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
     GlobalState->FontRelativeScale = 1.f;
     midx BufferSize = 2048;
     utf8_byte* Buffer = PushArray(PersistentArena, BufferSize, utf8_byte);
-    GlobalState->Language = 1;
+    GlobalState->QuestionLanguage = 0;
+    GlobalState->AnswerLanguage = 1;
     GlobalState->InputBuffer = Utf8StringBuffer(BufferSize, Buffer);
     GlobalState->Initialized = true;
-    midx SizeToAlloc = EndChar - StartChar;
-    GlobalState->Font = jfont::LoadSDFFont(PushArray(PersistentArena, EndChar - StartChar, jfont::sdf_fontchar),
-    StartChar, EndChar, FontPath, GlobalState->TextPixelSize, Padding, GlobalState->OnedgeValue, GlobalState->PixelDistanceScale);
+    GlobalState->Font = jfont::LoadSDFFont(PushArray(PersistentArena, CharCount, jfont::sdf_fontchar),
+      CharCount, FontPath,  GlobalState->TextPixelSize, Padding, GlobalState->OnedgeValue, GlobalState->PixelDistanceScale);
     GlobalState->Library = LoadLibrary(PersistentArena);
   }
   jwin::keyboard_input* Keyboard = &Input->Keyboard;
@@ -109,7 +108,8 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
 
 
   utf8_string_buffer* InputBuffer = &GlobalState->InputBuffer;
-  int* QuestionLanguage = &GlobalState->Language;
+  s32& QuestionLanguage = GlobalState->QuestionLanguage;
+  s32& AnswerLanguage = GlobalState->AnswerLanguage;
 
   if(jwin::Pushed(Keyboard->Key_BACK) && InputBuffer->Position > 0)
   {
@@ -118,24 +118,30 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
 
   library* Library = &GlobalState->Library;
 
-  if(Pushed(Keyboard->Key_TAB) && (Active(Keyboard->Key_RSHIFT) || Active(Keyboard->Key_LSHIFT)))
-  {
-    GlobalState->Language++;
-    GlobalState->Language = GlobalState->Language % Library->LanguageCount;
-  }
-
-  int InputLanguage    = ((*QuestionLanguage)+1) % Library->LanguageCount;
   
   local_persist int ProgramState = 0;
   local_persist int NounSelect = 0;
-
 
   
   if(jwin::Pushed(Keyboard->Key_ENTER)) {
     ProgramState = (ProgramState+1) % 2;
   }
-  int NounQuestion = NounSelect*Library->LanguageCount + *QuestionLanguage;
-  int NounAnswer = NounSelect*Library->LanguageCount + InputLanguage;
+
+  if(Pushed(Keyboard->Key_TAB) && Active(Keyboard->Key_LSHIFT) && !Active(Keyboard->Key_RSHIFT))
+  {
+    QuestionLanguage = (QuestionLanguage+1)%Library->LanguageCount;
+    if(AnswerLanguage == QuestionLanguage)
+    {
+      QuestionLanguage = (QuestionLanguage+1)%Library->LanguageCount;
+    }
+  }else if(Pushed(Keyboard->Key_TAB) && !Active(Keyboard->Key_LSHIFT) && Active(Keyboard->Key_RSHIFT)){
+    u32 Tmp = AnswerLanguage;
+    AnswerLanguage = QuestionLanguage;
+    QuestionLanguage = Tmp;
+  }
+
+  int NounQuestion = NounSelect*Library->LanguageCount + QuestionLanguage;
+  int NounAnswer = NounSelect*Library->LanguageCount + AnswerLanguage;
 
   int PrintStartPosX = StbBitmap.Width/4.f;
   int PrintStartPosY = StbBitmap.Height/2.f;
@@ -153,9 +159,9 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
     }
 
     int MaxInputCharLength = 32;
-    if( InputBuffer->BufferSize < MaxInputCharLength)
+    if( InputBuffer->Position < MaxInputCharLength)
     {
-      PushInputToBuffer(Keyboard, InputBuffer, InputLanguage);
+      PushInputToBuffer(Keyboard, InputBuffer, AnswerLanguage);
     }
 
     if(!(((s32) Input->Time) % 2) || 
@@ -166,17 +172,18 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
     }
   }else if(ProgramState == 1)
   {
-    u32 Q[128] = {};
-    ConvertToUnicode(Library->Nouns[NounAnswer], Q, GlobalState->Language);
-    u32 A[128] = {};
-    ConvertToUnicode(InputBuffer->Buffer, A, GlobalState->Language);
+
+    u32 Facit[128] = {};
+    ConvertToUnicode(Library->Nouns[NounAnswer], Facit);
+    u32 Answer[128] = {};
+    ConvertToUnicode(InputBuffer->Buffer, Answer);
     int Index = 0;
-    while(Q[Index] && A[Index] && Q[Index] == A[Index])
+    while(Facit[Index] && Answer[Index] && Facit[Index] == Answer[Index])
     {
       Index++;
     }
 
-    bool CorrectAnswer = (Q[Index] == '\0') && (A[Index] == '\0');
+    bool CorrectAnswer = (Facit[Index] == '\0') && (Answer[Index] == '\0');
     if(CorrectAnswer)
     {
       AppendStringToBuffer((const utf8_byte*)" OK!", &PrintBuffer);
@@ -186,7 +193,17 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
     }
   }
 
-  u32 NounBuff[2048] = {};
-  u32 NounLen = ConvertToUnicode(PrintBuffer.Buffer, NounBuff, GlobalState->Language);
+  utf8_string_buffer Language = CreateTempStringBuffer(1024);
+  AppendStringToBuffer(Library->Languages[QuestionLanguage], &Language);
+  AppendStringToBuffer((const utf8_byte*)" => ", &Language);
+  AppendStringToBuffer(Library->Languages[AnswerLanguage], &Language);
+  u32 LanguageBuffer[1024] = {};
+  u32 LanguageLen = ConvertToUnicode(Language.Buffer, LanguageBuffer);
+  r32 TextWidth, TextHeight;
+  jfont::GetTextDim(&GlobalState->Font, GlobalState->FontRelativeScale, &TextWidth, &TextHeight, LanguageBuffer);
+  jfont::PrintText(&GlobalState->Font, &StbBitmap, GlobalState->FontRelativeScale, 10, StbBitmap.Height-10-TextHeight, LanguageLen, LanguageBuffer);
+
+  u32 NounBuff[1024] = {};
+  u32 NounLen = ConvertToUnicode(PrintBuffer.Buffer, NounBuff);
   jfont::PrintText(&GlobalState->Font, &StbBitmap, GlobalState->FontRelativeScale, (StbBitmap.Width)/4.f, (StbBitmap.Height)/2.f, NounLen, NounBuff);
 }

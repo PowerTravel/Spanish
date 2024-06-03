@@ -26,7 +26,7 @@ void ConcatinateBuffers(utf8_string_buffer* BuffA, utf8_string_buffer* BuffB, ut
 void AppendStringToBuffer(const utf8_byte* String, utf8_string_buffer* StringBuffer);
 void EraseFromBuffer(utf8_string_buffer* StringBuffer, s32 Utf8CharsToErase);
 void ClearBuffer(utf8_string_buffer* StringBuffer);
-u32 ConvertToUnicode(utf8_byte *utf8Input, u32* unicodeOutput, u32 Language);
+u32 ConvertToUnicode(utf8_byte *utf8Input, u32* unicodeOutput);
 
 utf8_string_buffer Utf8StringBuffer(midx ByteCount, utf8_byte* Memory)
 {
