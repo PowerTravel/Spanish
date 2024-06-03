@@ -2,11 +2,12 @@
 
 set OutputFileName=jwin
 set ApplicationSrcMainFile=..\spanish.cpp
+set ConfigFilePath=/I..
 
 set DisableOptimization=-Od
 set GenerateDebugInfo=-Z7
 
-set IncludeDirectories=/I..\jwin
+set IncludeDirectories=/I..\jwin %ConfigFilePath%
 
 set OutputFiles=/Fm%OutputFileName%.map /Fe%OutputFileName%.exe /Fo%OutputFileName%.obj
 set LinkFlags=-incremental:no -opt:ref user32.lib gdi32.lib winmm.lib 
