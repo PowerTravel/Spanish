@@ -61,10 +61,6 @@ u32 CharCount(utf8_byte* Chars)
   return Result;
 }
 
-u32 GetRand(u32 Seed, u32 Multiplyer, u32 Increment, u32 Modulus)
-{
-  return ((Seed%Modulus)*Multiplyer + Increment) % Modulus;
-}
 
 // void ApplicationUpdateAndRender(application_memory* Memory, platform_offscreen_buffer* OffscreenBuffer, jwin::device_input* Input)
 extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
@@ -90,7 +86,14 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
     GlobalState->Font = jfont::LoadSDFFont(PushArray(PersistentArena, CharCount, jfont::sdf_fontchar),
       CharCount, FontPath,  GlobalState->TextPixelSize, Padding, GlobalState->OnedgeValue, GlobalState->PixelDistanceScale);
     GlobalState->Library = LoadLibrary(PersistentArena);
+
+    GlobalState->QuestionCardCount = GlobalState->Library.NounCount;
+    ListInitiate(&GlobalState->Sentinel);
+    GlobalState->QueueCards = PushArray(PersistentArena, GlobalState->QuestionCardCount, question_card_list);
+    
+    GlobalState->Generator = RandomGenerator(Input->RandomSeed);
   }
+
   jwin::keyboard_input* Keyboard = &Input->Keyboard;
   
   char EggWhiteR = 0xF0;
