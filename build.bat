@@ -13,7 +13,7 @@ set OutputFiles=/Fm%OutputFileName%.map /Fe%OutputFileName%.exe /Fo%OutputFileNa
 set LinkFlags=-incremental:no -opt:ref user32.lib gdi32.lib winmm.lib 
 REM -fp:fast -fp:except- -GR- -EHa- -Zo -Oi -WX -W4 -wd4018 -wd4201 -wd4100 -wd4189 -wd4505 -wd4127 -wd4706 -FC -Z7 -GS- -Gs9999999 -wd4702
 set CommonLinkerFlags=%LinkFlags%
-set CommonCompilerFlags=%IncludeDirectories% /DEBUG:FULL -nologo %DisableOptimization% %GenerateDebugInfo%
+set CommonCompilerFlags=%IncludeDirectories% /DEBUG:FULL -nologo %DisableOptimization% %GenerateDebugInfo% -DJWIN_SLOW
 REM "USER_APPLICATION_TMP.dll"
   
 

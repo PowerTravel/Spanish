@@ -61,6 +61,53 @@ u32 CharCount(utf8_byte* Chars)
   return Result;
 }
 
+u32 QuestionCountInList(question_card_list* Sentinel)
+{
+  question_card_list* Card = Sentinel->Next;
+  u32 CardsLeft = 0;
+  while (Card != Sentinel)
+  {
+    CardsLeft++;
+    Card = Card->Next;
+  }
+  return CardsLeft;
+}
+
+question_card_list* InitiateQuestionList(question_card_list* Sentinel, question_card_list* QueueCards, u32 QuestionCardCount)
+{
+  ListInitiate(Sentinel);
+  for (int i = 0; i < QuestionCardCount; ++i)
+  {
+    question_card_list* Card = QueueCards + i;
+    Card->Question = i;
+    ListInsertBefore(Sentinel, Card);
+  }
+  return QueueCards;
+}
+
+question_card_list* ShuffleQueueCards(random_generator* Generator, question_card_list* Sentinel)
+{
+  u32 CardsLeft = QuestionCountInList(Sentinel);
+  question_card_list TempSentinel = {};
+  ListInitiate(&TempSentinel);
+  question_card_list* Card = Sentinel->Next;
+  while (Card != Sentinel)
+  {
+    u32 Rand = GetRandomInt(Generator, CardsLeft);
+    for (int j = 0; j < Rand; ++j)
+    {
+      Card = Card->Next;
+      jwin_Assert(Card != Sentinel);
+    }
+    ListRemove(Card);
+    ListInsertBefore(&TempSentinel, Card);
+    Card = Sentinel->Next;
+    CardsLeft--;
+  }
+  Sentinel->Next = TempSentinel.Next;
+  Sentinel->Previous = TempSentinel.Previous;
+  return Sentinel->Next;
+}
 
 // void ApplicationUpdateAndRender(application_memory* Memory, platform_offscreen_buffer* OffscreenBuffer, jwin::device_input* Input)
 extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
@@ -87,13 +134,15 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
       CharCount, FontPath,  GlobalState->TextPixelSize, Padding, GlobalState->OnedgeValue, GlobalState->PixelDistanceScale);
     GlobalState->Library = LoadLibrary(PersistentArena);
 
-    GlobalState->QuestionCardCount = GlobalState->Library.NounCount;
-    ListInitiate(&GlobalState->Sentinel);
-    GlobalState->QueueCards = PushArray(PersistentArena, GlobalState->QuestionCardCount, question_card_list);
-    
-    GlobalState->Generator = RandomGenerator(Input->RandomSeed);
-  }
+    u32 QuestionCount = GlobalState->Library.NounCount / GlobalState->Library.LanguageCount;
 
+    GlobalState->QuestionCardCount = QuestionCount;
+    GlobalState->QueueCards = PushArray(PersistentArena, GlobalState->QuestionCardCount, question_card_list);
+    InitiateQuestionList(&GlobalState->Sentinel, GlobalState->QueueCards, GlobalState->QuestionCardCount);
+
+    GlobalState->Generator = RandomGenerator(Input->RandomSeed);
+    GlobalState->CurrentCard = ShuffleQueueCards(&GlobalState->Generator, &GlobalState->Sentinel);
+  }
   jwin::keyboard_input* Keyboard = &Input->Keyboard;
   
   char EggWhiteR = 0xF0;
@@ -121,10 +170,9 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
 
   library* Library = &GlobalState->Library;
 
-  
   local_persist int ProgramState = 0;
-  local_persist int NounSelect = 0;
 
+  int NounSelect = GlobalState->CurrentCard->Question;
   
   if(jwin::Pushed(Keyboard->Key_ENTER)) {
     ProgramState = (ProgramState+1) % 2;
@@ -154,11 +202,28 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
   AppendStringToBuffer((const utf8_byte*)" => ", &PrintBuffer);
   CopyBufferContent(InputBuffer, &PrintBuffer);
 
+
   if(ProgramState == 0)
   {
     if(jwin::Pushed(Keyboard->Key_ENTER)) {
       ClearBuffer(InputBuffer);
-      NounSelect++;
+      question_card_list* LastCard = GlobalState->CurrentCard;
+      GlobalState->CurrentCard = LastCard->Next;
+      if(LastCard->CorrectAnswer)
+      {
+        ListRemove(LastCard);
+      }
+
+      if(GlobalState->CurrentCard == &GlobalState->Sentinel)
+      {
+        u32 CardsLeft = QuestionCountInList(&GlobalState->Sentinel);
+        if(CardsLeft == 0)
+        {
+          InitiateQuestionList(&GlobalState->Sentinel, GlobalState->QueueCards, GlobalState->QuestionCardCount);
+        }
+        GlobalState->CurrentCard = ShuffleQueueCards(&GlobalState->Generator, &GlobalState->Sentinel);
+        NounSelect = GlobalState->CurrentCard->Question;
+      }
     }
 
     int MaxInputCharLength = 32;
@@ -185,9 +250,10 @@ extern "C" JWIN_UPDATE_AND_RENDER(ApplicationUpdateAndRender)
     {
       Index++;
     }
-
-    bool CorrectAnswer = (Facit[Index] == '\0') && (Answer[Index] == '\0');
-    if(CorrectAnswer)
+    if(jwin::Pushed(Keyboard->Key_ENTER)) {
+      GlobalState->CurrentCard->CorrectAnswer = (Facit[Index] == '\0') && (Answer[Index] == '\0');
+    }
+    if(GlobalState->CurrentCard->CorrectAnswer)
     {
       AppendStringToBuffer((const utf8_byte*)" OK!", &PrintBuffer);
     }else{

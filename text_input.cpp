@@ -286,7 +286,7 @@ void EraseFromBuffer(utf8_string_buffer* StringBuffer, s32 Utf8CharsToErase)
 
 void CopyBufferContent(utf8_string_buffer* SrcBuf, utf8_string_buffer* DstBuf)
 {
-  jwin_Assert(DstBuf->BufferSize < (DstBuf->Position + SrcBuf->Position)); 
+  jwin_Assert(DstBuf->BufferSize > (DstBuf->Position + SrcBuf->Position)); 
   for (int i = 0; i < SrcBuf->Position; ++i)
   {
     DstBuf->Buffer[DstBuf->Position++] = SrcBuf->Buffer[i];

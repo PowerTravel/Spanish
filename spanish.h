@@ -6,6 +6,7 @@
 
 struct question_card_list {
   u32 Question;
+  b32 CorrectAnswer;
   question_card_list* Next;
   question_card_list* Previous;
 };
@@ -19,6 +20,7 @@ struct application_state
   u32 QuestionCardCount;
   question_card_list Sentinel;
   question_card_list* QueueCards;
+  question_card_list* CurrentCard;
 
   utf8_string_buffer InputBuffer;
   library Library;
